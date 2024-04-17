@@ -1,0 +1,37 @@
+import exp from "constants";
+import mongoose, { Mongoose } from "mongoose";
+
+
+const MONGODB_URI = process.env.MONGODB_URI;
+
+
+// Becos NextJs is serverless, db connection runs each time there is db action
+// This is primarily bcos nextjs runs a serverless function unlike d usual Express
+interface MongooseConnection {
+    conn: Mongoose | null;
+    promise: Promise<Mongoose> | null;
+}
+
+let cached: MongooseConnection = (global as any).mongoose
+
+if(!cached) {
+    cached = (global as any).mongoose = {
+        conn: null, promise: null
+    }
+}
+
+export const connectToDatabase = async () => {
+    if(cached.conn) return cached.conn;
+
+    if(!MONGODB_URI) throw new Error('MONGODB_URI is Missing');
+
+    cached.promise = 
+      cached.promise || 
+      mongoose.connect(MONGODB_URI, { 
+        dbName: 'writeearn', bufferCommands: false 
+      })
+    
+    cached.conn = await cached.promise;
+
+    return cached.conn;
+}
